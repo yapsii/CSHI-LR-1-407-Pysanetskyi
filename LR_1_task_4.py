@@ -8,25 +8,68 @@ Original file is located at
 """
 
 import numpy as np
-from sklearn import linear_model
+import matplotlib.pyplot as plt
+from sklearn.naive_bayes import GaussianNB
+from sklearn.model_selection import train_test_split, cross_val_score
+import pandas as pd
+from mlxtend.plotting import plot_decision_regions
 
+# Вхідний файл, який містить дані
+input_file = 'data_multivar_nb.txt'
 
-# Визначимо зразок вхідних даних за допомогою двовимірних векторів і відповідних міток.
-# Визначення зразка вхідних даних
-X = np.array([[3.1, 7.2], [4, 6.7], [2.9, 8], [5.1, 4.5],
-              [6, 5], [5.6, 5.1], [3.3, 0.4], [3.9, 0.9],
-              [2.8, 1], [6.3, 1.6], [3.4, 4], [4.1, 4.9],
-              [4, 4.5], [4.1, 0.6], [4.2, 4.9]])
-y = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3])
+# Завантаження даних із вхідного файлу
+data = pd.read_csv(input_file, delimiter=',').values
+X, y = data[:, :-1], data[:, -1]
 
-# Ми тренуватимемо класифікатор, використовуючи ці позначені дані.
-# Створимо об'єкт логістичного класифікатора.
-classifier = linear_model.LogisticRegression(solver='liblinear', C=1)
+# Створимо екземпляр наївного Байєсовського класифікатора
+classifier = GaussianNB()
 
-# Навчимо класифікатор, використовуючи певні дані.
+# Навчимо класифікатор, використовуючи тренувальні дані
 classifier.fit(X, y)
 
-# Візуалізуємо результати роботи класифікатора, відстеживши межі.
-visualize_classifier(classifier, X, y)
+# Запустимо класифікатор на тренувальних даних та спрогнозуємо результати
+y_pred = classifier.predict(X)
+
+# Обчислимо якість (accuracy) класифікатора
+accuracy = 100.0 * (y == y_pred).sum() / X.shape[0]
+print("Accuracy of Naive Bayes classifier =", round(accuracy, 2), "%")
+
+# Візуалізація роботи класифікатора на всіх даних
+plot_decision_regions(X, y.astype(int), clf=classifier, legend=2)
+plt.xlabel('X1')
+plt.ylabel('X2')
+plt.title('Decision Boundary on Entire Dataset')
+plt.show()
+
+# Разбивка данных на тренировочный и тестовый наборы
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=3)
+classifier_new = GaussianNB()
+classifier_new.fit(X_train, y_train)
+y_test_pred = classifier_new.predict(X_test)
+
+# Вычисляем точность классификатора и визуализируем результаты
+accuracy = 100.0 * (y_test == y_test_pred).sum() / y_test.shape[0]
+print("Accuracy of the new classifier =", round(accuracy, 2), "%")
+
+# Візуалізація роботи класифікатора на тестовій вибірці
+plot_decision_regions(X_test, y_test.astype(int), clf=classifier_new, legend=2)
+plt.xlabel('X1')
+plt.ylabel('X2')
+plt.title('Decision Boundary on Test Set')
+plt.show()
+
+# Используем встроенные функции для вычисления точности (accuracy), прецизионности (precision) и полноты (recall) классификатора на основе перекрестной проверки (cross-validation)
+num_folds = 3
+accuracy_values = cross_val_score(classifier_new, X, y, scoring="accuracy", cv=num_folds)
+print("Accuracy =", str(round(100 * accuracy_values.mean(), 2)) + "%")
+
+precision_values = cross_val_score(classifier_new, X, y, scoring="precision_weighted", cv=num_folds)
+print("Precision =", str(round(100 * precision_values.mean(), 2)) + "%")
+
+recall_values = cross_val_score(classifier_new, X, y, scoring="recall_weighted", cv=num_folds)
+print("Recall =", str(round(100 * recall_values.mean(), 2)) + "%")
+
+f1_values = cross_val_score(classifier_new, X, y, scoring="f1_weighted", cv=num_folds)
+print("F1 =", str(round(100 * f1_values.mean(), 2)) + "%")
 
 """# Новый раздел"""
